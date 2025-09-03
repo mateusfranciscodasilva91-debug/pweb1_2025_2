@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body style="background-color: #0E8E3A">
+
+    <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Space Blaster — Jogo HTML</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --fg: #e6f0ff;
+      --accent: #6ae3ff;
+      --accent2: #9b6aff;
+      --danger: #ff6a8b;
+      --ok: #7dffb3;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: radial-gradient(circle at 50% 20%, #101935 0%, var(--bg) 60%);
+      color: var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      display: grid; place-items: center; overflow: hidden;
+    }
+    .wrap { position: relative; width: min(100vw, 700px); aspect-ratio: 9/16; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06) inset; overflow: hidden; }
+    canvas { width: 100%; height: 100%; display: block; background: transparent; }
+
+    /* HUD */
+    .hud { position: absolute; inset: 0; pointer-events: none; }
+    .topbar { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .pill { backdrop-filter: blur(8px); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: var(--fg); padding: 6px 12px; border-radius: 999px; font-weight: 600; letter-spacing: .3px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    .score { font-variant-numeric: tabular-nums; }
+    .btns { display: flex; gap: 8px; pointer-events: auto; }
+    .btn { cursor: pointer; user-select: none; }
+
+    /* On-screen controls (mobile) */
+    .controls { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: space-between; padding: 0 10px; gap: 10px; pointer-events: none; }
+    .pad { width: 31%; aspect-ratio: 1.8/1; border-radius: 16px; backdrop-filter: blur(6px); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); display: grid; place-items: center; font-weight: 700; letter-spacing: .5px; pointer-events: auto; touch-action: manipulation; }
+
+    /* Center overlays */
+    .center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; }
+    .card { max-width: 520px; backdrop-filter: blur(8px); background: rgba(9, 15, 30, .6); border: 1px solid rgba(255,255,255,.12); padding: 22px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .title { font-size: clamp(22px, 3.6vw, 40px); margin: 0 0 8px; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; letter-spacing: .6px; }
+    .subtitle { opacity: .9; margin: 0 0 14px; }
+    .kbd { display: inline-block; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); box-shadow: 0 2px 0 rgba(0,0,0,.2) inset; font-variant: tabular-nums; }
+    .actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+    .primary { cursor: pointer; padding: 10px 16px; border-radius: 12px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.08)); border: 1px solid rgba(255,255,255,.18); font-weight: 800; letter-spacing: .6px; box-shadow: 0 6px 14px rgba(0,0,0,.24); }
+    .primary:hover { transform: translateY(-1px); }
+
+    .blink { animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: .4; } }
+
+    /* Small helper */
+    .hide { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <canvas id="game" width="540" height="960" aria-label="Canvas do jogo"></canvas>
+    <div class="hud">
+      <div class="topbar">
+        <div class="pill score" id="score">Score 000000</div>
+        <div class="btns">
+          <div class="pill btn" id="muteBtn" title="Som">🔊</div>
+          <div class="pill btn" id="pauseBtn" title="Pausar (P)">⏸</div>
+          <div class="pill btn" id="resetBtn" title="Reiniciar (R)">↻</div>
+        </div>
+      </div>
+      <div class="controls" id="controls">
+        <div class="pad" id="left">◀</div>
+        <div class="pad" id="fire">FIRE</div>
+        <div class="pad" id="right">▶</div>
+      </div>
+      <div class="center" id="overlay">
+        <div class="card">
+          <h1 class="title">SPACE BLASTER</h1>
+          <p class="subtitle">Desvie, atire e marque pontos. <br/>Teclado: <span class="kbd">←</span> <span class="kbd">→</span> para mover, <span class="kbd">Espaço</span> para atirar, <span class="kbd">P</span> pausa.</p>
+          <p class="subtitle">Toque nos botões na tela no celular.</p>
+          <div class="actions">
+            <button class="primary" id="startBtn">▶ Jogar</button>
+            <button class="primary" id="howBtn">ℹ️ Como jogar</button>
+          </div>
+          <p style="margin-top:10px; opacity:.8">Recorde: <span id="best">0</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    // --- Utilidades ---------------------------------------------------------
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const rand = (a, b) => Math.random() * (b - a) + a;
+    const now = () => performance.now();
+    const fmt = n => n.toString().padStart(6, '0');
+
+    // --- Canvas & Escala Retina -------------------------------------------
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    function resize() {
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // usar CSS pixels como unidade
+    }
+    new ResizeObserver(resize).observe(canvas);
+    resize();
+
+    // --- Estado do jogo ----------------------------------------------------
+    const State = { MENU: 0, PLAY: 1, PAUSE: 2, GAMEOVER: 3 };
+    let state = State.MENU;
+    let score = 0, best = Number(localStorage.getItem('space_best')||0);
+    let last = now();
+
+    // --- Jogador -----------------------------------------------------------
+    const player = { x: 270, y: 860, w: 36, h: 36, vx: 0, speed: 420, cooldown: 0 };
+
+    // --- Arrays de entidades ----------------------------------------------
+    const bullets = []; // {x,y,v}
+    const enemies = []; // {x,y,vx,vy,rad,hp}
+    const particles = []; // {x,y,vx,vy,life}
+
+    // --- Entrada -----------------------------------------------------------
+    const keys = new Set();
+    window.addEventListener('keydown', e => {
+      if (['ArrowLeft','ArrowRight','Space','KeyA','KeyD','KeyP','KeyR'].includes(e.code)) e.preventDefault();
+      keys.add(e.code);
+      if (e.code === 'KeyP') togglePause();
+      if (e.code === 'KeyR') reset();
+    });
+    window.addEventListener('keyup', e => keys.delete(e.code));
+
+    // Touch controls
+    const left = document.getElementById('left');
+    const right = document.getElementById('right');
+    const fire = document.getElementById('fire');
+    const touchHold = (el, down, up) => {
+      let pressed = false; let id = null;
+      const onDown = e => { pressed = true; id = (e.changedTouches? e.changedTouches[0].identifier : null); down(); };
+      const onUp = e => { if (!pressed) return; pressed = false; up(); };
+      el.addEventListener('pointerdown', onDown);
+      el.addEventListener('pointerup', onUp);
+      el.addEventListener('pointerleave', onUp);
+      el.addEventListener('pointercancel', onUp);
+    };
+    touchHold(left, ()=>keys.add('ArrowLeft'), ()=>keys.delete('ArrowLeft'));
+    touchHold(right, ()=>keys.add('ArrowRight'), ()=>keys.delete('ArrowRight'));
+    touchHold(fire, ()=>keys.add('Space'), ()=>keys.delete('Space'));
+
+    // --- Áudio simples (WebAudio, sem arquivos) ---------------------------
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audio = null; let muted = false;
+    function ensureAudio() { if (!audio) audio = new AudioCtx(); }
+    function beep(freq=440, dur=0.08, type='sine', vol=0.15) {
+      if (muted) return; ensureAudio();
+      const t = audio.currentTime; const o = audio.createOscillator(); const g = audio.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur);
+    }
+
+    // --- UI elementos ------------------------------------------------------
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best'); bestEl.textContent = best;
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const howBtn = document.getElementById('howBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const muteBtn = document.getElementById('muteBtn');
+
+    startBtn.onclick = () => { overlay.classList.add('hide'); start(); };
+    howBtn.onclick = () => showHelp();
+    pauseBtn.onclick = () => togglePause();
+    resetBtn.onclick = () => reset();
+    muteBtn.onclick = () => { muted = !muted; muteBtn.textContent = muted ? '🔈' : '🔊'; };
+
+    function showHelp() {
+      overlay.innerHTML = `
+        <div class="card">
+          <h2 class="title" style="font-size:28px">Como jogar</h2>
+          <p class="subtitle">Mova-se com <span class="kbd">←</span> <span class="kbd">→</span>
+    
+</body>
+</html>
